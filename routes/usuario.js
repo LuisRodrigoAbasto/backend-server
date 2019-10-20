@@ -1,14 +1,21 @@
 var express = require("express");
 const bcrypt = require("bcryptjs");
-// inicializar Variables
+
+var jwt = require("jsonwebtoken");
+
+// var SEED = require("../config/config").SEED;
+
+var mdAutenticacion = require("../middleware/autentication");
+
 var app = express();
+
 var Usuario = require("../models/usuario");
 
 //=============================================
 // Obtenes todo los Usuarios
 //=============================================
 app.get("/", (req, res, next) => {
-  Usuario.find({}, "nombre email role ").exec((err, usuarios) => {
+  Usuario.find({}, "nombre email img role ").exec((err, usuarios) => {
     if (err) {
       return res.status(500).json({
         ok: false,
@@ -22,10 +29,11 @@ app.get("/", (req, res, next) => {
     });
   });
 });
+
 //=============================================
 // Actualizar usuario
 //=============================================
-app.put("/:id", (req, res) => {
+app.put("/:id",mdAutenticacion.verificaToken, (req, res) => {
   var id = req.params.id;
   var body = req.body;
   Usuario.findById(id, (err, usuario) => {
@@ -68,7 +76,8 @@ app.put("/:id", (req, res) => {
 //=============================================
 // Crear usuario
 //=============================================
-app.post("/", (req, res) => {
+app.post("/", mdAutenticacion.verificaToken, (req, res) => {
+
   var body = req.body;
 
   var usuario = new Usuario({
@@ -88,16 +97,17 @@ app.post("/", (req, res) => {
     }
     res.status(201).json({
       ok: true,
-      usuario: usuarioGuardado
+      usuario: usuarioGuardado,
+      usuariotoken: req.usuario
     });
   });
 });
 //=============================================
 // Eliminar Usuario por el id
 //=============================================
-app.delete('/:id',(req,res)=>{
-  var id=req.params.id;
-  Usuario.findByIdAndRemove(id,(err,usuarioBorrado)=>{
+app.delete("/:id",mdAutenticacion.verificaToken, (req, res) => {
+  var id = req.params.id;
+  Usuario.findByIdAndRemove(id, (err, usuarioBorrado) => {
     if (err) {
       return res.status(500).json({
         ok: false,
@@ -109,14 +119,14 @@ app.delete('/:id',(req,res)=>{
       return res.status(400).json({
         ok: false,
         mensaje: "No Existe un Usuario con ese id",
-        errors: {message:'No Existe un Usuario con ese id'}
+        errors: { message: "No Existe un Usuario con ese id" }
       });
     }
     res.status(200).json({
       ok: true,
       usuario: usuarioBorrado
     });
-  })
-})
+  });
+});
 
 module.exports = app;
